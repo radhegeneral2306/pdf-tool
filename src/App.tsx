@@ -13,6 +13,7 @@ import { DocumentView } from './screens/DocumentView';
 import { Camera } from './screens/Camera';
 import { PageEditor } from './screens/PageEditor';
 import { Welcome } from './screens/Welcome';
+import { handleOpenRoute } from './lib/openWith';
 
 export function App() {
   useApplyTheme();
@@ -21,6 +22,7 @@ export function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (route.name === 'open') handleOpenRoute();
   }, [route.name]);
 
   const tab = route.name === 'tools' || route.name === 'documents' || route.name === 'settings';

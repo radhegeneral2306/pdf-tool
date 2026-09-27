@@ -9,6 +9,8 @@ A small, offline-first web app for everyday PDF jobs on your phone. Installs to 
 - Filters: Original, Clear Scan, Black & White, Color
 - Turn images into a PDF
 - Split PDF: pick the pages you want and save them as a new PDF
+- Edit PDF: open a PDF from your device, then rotate, reorder, add or remove pages and save
+- Open files from outside the app: Share to PDF Tool (Android, installed app) or "Open with" (computer, installed app in Chrome/Edge). iPhone does not allow this for web apps, so use Edit PDF inside the app
 - Merge PDFs and images into one PDF, reordering by drag and drop
 - Full quality by default, with High / Medium / Small / "under X MB" options when exporting
 - Exported file is named with today's date (DD-MM-YY) and can be renamed
