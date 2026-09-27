@@ -1,0 +1,124 @@
+.screen {
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0 calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left));
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--label-2);
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 17px;
+}
+.search input::placeholder {
+  color: var(--label-2);
+}
+.search input::-webkit-search-cancel-button {
+  display: none;
+}
+.search button {
+  display: grid;
+  place-items: center;
+  color: var(--label-2);
+  min-width: 28px;
+  min-height: 28px;
+}
+.group {
+  margin: 0 calc(16px + var(--safe-right)) 8px calc(16px + var(--safe-left));
+  border-radius: var(--r-cell);
+  overflow: hidden;
+  background: var(--cell);
+}
+.row {
+  display: flex;
+  align-items: center;
+  background: var(--cell);
+}
+.row > button:last-child {
+  flex: 1;
+  min-width: 0;
+}
+.row:last-child > button:last-child > span:last-child {
+  box-shadow: none;
+}
+.row:not(:last-child) > button:last-child > span:last-child {
+  box-shadow: inset 0 -0.5px 0 var(--separator);
+}
+.minus {
+  display: grid;
+  place-items: center;
+  padding-left: 14px;
+  min-height: 44px;
+  color: var(--destructive);
+  animation: fade-in 0.2s;
+}
+.skeleton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 72px;
+  padding: 0 16px;
+}
+.skeleton span:first-child {
+  width: 40px;
+  height: 52px;
+  border-radius: 4px;
+  background: var(--fill);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+.skeleton span:last-child {
+  width: 50%;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--fill);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+.noMatch {
+  margin: 0;
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--label-2);
+}
+.footer {
+  margin: 8px 32px;
+  font-size: 13px;
+  color: var(--label-2);
+  text-align: center;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 72px 40px 0;
+  text-align: center;
+  color: var(--label-2);
+}
+.empty h2 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--label);
+}
+.empty p {
+  margin: 0;
+  font-size: 15px;
+  max-width: 34ch;
+}
+.emptyBtn {
+  margin-top: 16px;
+  width: 200px;
+}
