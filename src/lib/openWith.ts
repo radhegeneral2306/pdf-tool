@@ -13,7 +13,9 @@ export function titleFor(files: File[]): string {
 /** Opens files as a new document, ready to edit. */
 export function openFiles(files: File[], replace = false) {
   if (!files.length) return;
-  return withBusy('Opening', () => createFromFiles(files, titleFor(files), { replace }));
+  // One file: keep its name as the default export name (invoice.pdf saves as invoice.pdf).
+  const exportName = files.length === 1 && files[0].name ? titleFor(files) : undefined;
+  return withBusy('Opening', () => createFromFiles(files, titleFor(files), { replace, exportName }));
 }
 
 interface LaunchParams {

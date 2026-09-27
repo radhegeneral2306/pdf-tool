@@ -19,9 +19,9 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
-export function newProject(pages: Project['pages'] = [], title?: string): Project {
+export function newProject(pages: Project['pages'] = [], title?: string, exportName?: string): Project {
   const now = Date.now();
-  const p: Project = { id: uid(), title: title ?? `Scan ${dateName()}`, createdAt: now, updatedAt: now, pages };
+  const p: Project = { id: uid(), title: title ?? `Scan ${dateName()}`, createdAt: now, updatedAt: now, pages, exportName };
   cache.set(p.id, p);
   save(p);
   emit();

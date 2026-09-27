@@ -10,7 +10,7 @@ import { getBlobSize } from '../storage/db';
 import { buildPdf, buildPdfUnder } from '../lib/pdfBuild';
 import { browserDeps } from '../lib/exportDeps';
 import { PRESETS, estimateBytes, formatBytes, type Level } from '../lib/compress';
-import { defaultExportName, finalFileName } from '../lib/fileName';
+import { defaultExportName, finalFileName, sanitizeName } from '../lib/fileName';
 import { isIOS, isStandalone } from '../lib/install';
 import type { OutputSize, PageItem, PageSize, Project } from '../types';
 import s from './ExportSheet.module.css';
@@ -29,9 +29,11 @@ export function ExportSheet({ project, pages: only, onClose }: { project: Projec
   // `only` = just the selected pages (Extract); otherwise the whole document.
   const pages = only ?? project.pages;
   const settings = useSettings();
-  const [name, setName] = useState(() => defaultExportName(settings.exportedNames));
+  // A PDF opened with Edit PDF keeps its original name (whole document only, not extracts).
+  const originalName = !only && project.exportName ? sanitizeName(project.exportName) : '';
+  const [name, setName] = useState(() => originalName || defaultExportName(settings.exportedNames));
   // Until the user types a name, every export uses the next free date name (27-09-26, then 27-09-26 (2)).
-  const [nameEdited, setNameEdited] = useState(false);
+  const [nameEdited, setNameEdited] = useState(!!originalName);
   const [pageSize, setPageSize] = useState<PageSize>(settings.pageSize);
   const [size, setSize] = useState<OutputSize>(settings.outputSize);
   const [targetMb, setTargetMb] = useState('2');

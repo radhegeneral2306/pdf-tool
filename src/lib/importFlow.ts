@@ -11,12 +11,12 @@ function reportErrors(errors: string[]) {
 }
 
 /** Creates a new document from picked files and opens it. */
-export async function createFromFiles(files: File[], title?: string, opts: { select?: boolean; replace?: boolean } = {}): Promise<Project | null> {
+export async function createFromFiles(files: File[], title?: string, opts: { select?: boolean; replace?: boolean; exportName?: string } = {}): Promise<Project | null> {
   if (!files.length) return null;
   const { pages, errors } = await importFiles(files, 'original');
   reportErrors(errors);
   if (!pages.length) return null;
-  const p = newProject(pages, title);
+  const p = newProject(pages, title, opts.exportName);
   navigate(`/doc/${p.id}${opts.select ? '/select' : ''}`, { replace: opts.replace });
   return p;
 }
