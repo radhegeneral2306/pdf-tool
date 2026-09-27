@@ -4,10 +4,12 @@ A small, offline-first web app for everyday PDF jobs on your phone. Installs to 
 
 ## Features
 
-- Scan documents with the camera
-- Clean up scans with filters
+- Scan documents with the camera (batch mode), then crop by dragging 4 corners
+- Filters: Original, Clear Scan, Black & White, Color
 - Turn images into a PDF
 - Merge PDFs and images into one PDF, reordering by drag and drop
+- Full quality by default, with High / Medium / Small / "under X MB" options when exporting
+- Exported file is named with today's date (DD-MM-YY) and can be renamed
 - Works offline once installed
 - Classic iOS look and feel
 
