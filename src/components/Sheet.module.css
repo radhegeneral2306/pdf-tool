@@ -23,7 +23,8 @@
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  background: var(--bg);
+  background: var(--sheet-bg);
+  --cell: var(--sheet-cell);
   border-radius: var(--r-sheet) var(--r-sheet) 0 0;
   animation: slide-up 0.38s var(--ease);
   overflow: hidden;

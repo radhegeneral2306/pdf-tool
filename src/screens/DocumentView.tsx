@@ -74,6 +74,7 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
   const exitSelect = () => {
     setSelecting(false);
     setSelected(new Set());
+    if (startSelecting) navigate(`/doc/${id}`, { replace: true });
   };
   const toggle = (pid: string) =>
     setSelected((cur) => {
