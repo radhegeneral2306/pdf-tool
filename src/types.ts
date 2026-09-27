@@ -15,6 +15,8 @@ export interface PageItem {
   kind: 'image' | 'pdfPage';
   /** Key of the original file in the blobs store. */
   blobId: string;
+  /** Name of the file this page came from (shown while selecting pages). */
+  sourceName?: string;
   /** Clockwise rotation chosen by the user, applied on top of the original. */
   rotation: Rotation;
   filter: FilterId;

@@ -71,10 +71,10 @@ export function Tools() {
           icon={<ScissorsIcon size={19} weight="fill" />}
           iconBg="#AF52DE"
           title="Split PDF"
-          subtitle="Pick pages from a PDF"
+          subtitle="Pick pages from one or more PDFs"
           chevron
           onClick={() =>
-            pickFiles(ACCEPT_PDF, { multiple: false }).then((files) => {
+            pickFiles(ACCEPT_PDF, { multiple: true }).then((files) => {
               if (files.length) withBusy('Opening PDF', () => createFromFiles(files, `Split ${dateName()}`, { select: true }));
             })
           }
