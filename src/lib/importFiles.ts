@@ -33,7 +33,7 @@ export async function importFiles(files: Blob[], imageFilter: FilterId): Promise
         const encrypted = e instanceof Error && /encrypt/i.test(e.message + e.name);
         errors.push(
           encrypted
-            ? `${nameOf(f)} is password protected. Remove the password first, then add it again.`
+            ? `${nameOf(f)} is locked or encrypted. Save an unlocked copy first (for example with "Print to PDF"), then add it again.`
             : `${nameOf(f)} could not be opened. The PDF may be damaged.`,
         );
         continue;

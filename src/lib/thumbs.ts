@@ -18,7 +18,7 @@ const inflight = new Map<string, Promise<string>>();
 // Simple queue: at most two thumbnails render at once so phones stay responsive.
 let running = 0;
 const queue: (() => void)[] = [];
-function limit<T>(job: () => Promise<T>): Promise<T> {
+export function limit<T>(job: () => Promise<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     const run = () => {
       running++;

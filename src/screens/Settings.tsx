@@ -7,8 +7,8 @@ import { ActionSheet, Sheet } from '../components/Sheet';
 import { BarButton } from '../components/NavBar';
 import { showToast } from '../components/Toast';
 import { updateSettings, useSettings } from '../storage/settings';
-import { clearAll, storageUsage } from '../storage/db';
-import { forgetProject, useProjectList } from '../storage/projects';
+import { storageUsage } from '../storage/db';
+import { removeAll, useProjectList } from '../storage/projects';
 import { formatBytes } from '../lib/compress';
 import { isIOS, isStandalone, promptInstall, useCanPrompt } from '../lib/install';
 import { FILTERS } from '../lib/filterMeta';
@@ -126,8 +126,7 @@ export function Settings() {
             label: 'Delete All',
             destructive: true,
             onSelect: async () => {
-              await clearAll();
-              projects?.forEach((p) => forgetProject(p.id));
+              await removeAll();
               showToast('All documents deleted');
             },
           },

@@ -3,7 +3,7 @@ import type { Project } from '../types';
 
 interface Schema extends DBSchema {
   projects: { key: string; value: Project; indexes: { updatedAt: number } };
-  blobs: { key: string; value: { id: string; blob: Blob } };
+  blobs: { key: string; value: { id: string; blob: Blob; createdAt?: number } };
   thumbs: { key: string; value: Blob };
 }
 
@@ -39,7 +39,7 @@ export async function putProject(p: Project) {
 
 export async function putBlob(blob: Blob): Promise<string> {
   const id = uid();
-  await (await db()).put('blobs', { id, blob });
+  await (await db()).put('blobs', { id, blob, createdAt: Date.now() });
   return id;
 }
 
@@ -72,7 +72,10 @@ export async function collectGarbage() {
   const used = new Set<string>();
   for (const p of await d.getAll('projects')) for (const pg of p.pages) used.add(pg.blobId);
   const tx = d.transaction(['blobs', 'thumbs'], 'readwrite');
-  for (const key of await tx.objectStore('blobs').getAllKeys()) if (!used.has(key)) await tx.objectStore('blobs').delete(key);
+  // Files added in the last 10 minutes are kept: their document may not be saved yet.
+  const fresh = Date.now() - 10 * 60 * 1000;
+  for (const rec of await tx.objectStore('blobs').getAll())
+    if (!used.has(rec.id) && !((rec.createdAt ?? 0) > fresh)) await tx.objectStore('blobs').delete(rec.id);
   for (const key of await tx.objectStore('thumbs').getAllKeys())
     if (!used.has(String(key).split('|')[0])) await tx.objectStore('thumbs').delete(key);
   await tx.done;

@@ -31,7 +31,11 @@ export default defineConfig({
       },
       workbox: {
         // pdf.js worker is a large .mjs file; it must be precached or PDFs won't open offline.
-        globPatterns: ['**/*.{js,mjs,css,html,png,svg,ico,webmanifest}'],
+        // pdfjs/ holds pdf.js runtime assets (see scripts/copy-pdfjs.mjs): wasm image
+        // decoders (+ JS fallbacks), CMaps (.bcmap), standard fonts (.pfb/.ttf), ICC profiles.
+        globPatterns: ['**/*.{js,mjs,css,html,png,svg,ico,webmanifest,wasm,bcmap,pfb,ttf,icc}'],
+        // QuickJS is only for PDF form scripting, which this app never enables.
+        globIgnores: ['**/node_modules/**/*', 'pdfjs/wasm/quickjs-eval.*'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${BASE}index.html`,
       },

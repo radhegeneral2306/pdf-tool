@@ -3,7 +3,7 @@ import { CameraIcon, LightningIcon, LightningSlashIcon, ImagesIcon } from '@phos
 import { ActionSheet } from '../components/Sheet';
 import { withBusy } from '../components/Hud';
 import { goBack, navigate } from '../router';
-import { newProject, updateProject } from '../storage/projects';
+import { newProject, updateProject, useProject } from '../storage/projects';
 import { getSettings } from '../storage/settings';
 import { importFiles } from '../lib/importFiles';
 import { pickFiles, ACCEPT_IMAGES } from '../lib/pickFiles';
@@ -29,6 +29,7 @@ export function Camera({ projectId }: { projectId?: string }) {
   const [flash, setFlash] = useState(0);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  useProject(projectId); // load the document early, in case the app was reloaded on this screen
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +90,7 @@ export function Camera({ projectId }: { projectId?: string }) {
         }
       }
       if (!blob) {
+        if (!v.videoWidth) throw new Error('Camera not ready');
         const c = document.createElement('canvas');
         c.width = v.videoWidth;
         c.height = v.videoHeight;
@@ -97,6 +99,8 @@ export function Camera({ projectId }: { projectId?: string }) {
         freeCanvas(c);
       }
       addShot(blob);
+    } catch {
+      showToast("Couldn't take the photo. Try again, or use Phone Camera.");
     } finally {
       setCapturing(false);
     }
@@ -122,7 +126,6 @@ export function Camera({ projectId }: { projectId?: string }) {
 
   const done = async () => {
     if (!shots.length) return;
-    stream.current?.getTracks().forEach((t) => t.stop());
     await withBusy('Saving scans', async () => {
       const { pages, errors } = await importFiles(
         shots.map((sh) => sh.blob),
@@ -130,6 +133,7 @@ export function Camera({ projectId }: { projectId?: string }) {
       );
       if (errors.length) showToast(errors[0]);
       if (!pages.length) return;
+      stream.current?.getTracks().forEach((t) => t.stop());
       let id = projectId;
       if (id) updateProject(id, (p) => ({ ...p, pages: [...p.pages, ...pages] }));
       else id = newProject(pages, `Scan ${dateName()}`).id;

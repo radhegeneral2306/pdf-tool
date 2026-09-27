@@ -31,7 +31,7 @@ const sizeOf = (d: Decoded) =>
   d instanceof HTMLImageElement ? { w: d.naturalWidth, h: d.naturalHeight } : { w: d.width, h: d.height };
 
 const release = (d: Decoded) => {
-  if (!(d instanceof HTMLImageElement)) d.close();
+  if (!(d instanceof HTMLImageElement)) d.close(); // safe to call twice
 };
 
 /** Frees a canvas's memory right away (important on phones). */
@@ -92,6 +92,15 @@ function getWorker(): Worker {
       p.resolve(new ImageData(data as Uint8ClampedArray<ArrayBuffer>, width, height));
     }
   };
+  // If the worker crashes (e.g. out of memory on a phone), fail pending jobs and start fresh next time.
+  const fail = () => {
+    pending.forEach((p) => p.reject(new Error('Image processing stopped. The photo may be too large for this device.')));
+    pending.clear();
+    worker?.terminate();
+    worker = null;
+  };
+  worker.onerror = fail;
+  worker.onmessageerror = fail;
   return worker;
 }
 
@@ -153,6 +162,8 @@ export async function renderImagePage(blob: Blob, edits: RenderEdits, maxDim = I
     const cw = Math.max(1, Math.round(rw * s));
     const ch = Math.max(1, Math.round(rh * s));
     const base = drawRotated(img, edits.rotation, cw, ch);
+    // Free the decoded photo now; the canvas has everything we need (saves ~48 MB for 12 MP).
+    release(img);
     if (!crop && edits.filter === 'original') return { canvas: base, limited };
 
     const data = base.getContext('2d')!.getImageData(0, 0, cw, ch);
@@ -171,8 +182,9 @@ export async function renderImagePage(blob: Blob, edits: RenderEdits, maxDim = I
     out.height = result.height;
     out.getContext('2d')!.putImageData(result, 0, 0);
     return { canvas: out, limited };
-  } finally {
+  } catch (e) {
     release(img);
+    throw e;
   }
 }
 

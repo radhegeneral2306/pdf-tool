@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFDocument, degrees } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFRawStream, degrees } from 'pdf-lib';
 import { buildPdf, buildPdfUnder, passthrough, type BuildDeps } from '../src/lib/pdfBuild';
 import { estimateBytes, PRESETS } from '../src/lib/compress';
 import type { PageItem } from '../src/types';
@@ -14,6 +14,25 @@ async function makePdf(pages: number, rotate = 0) {
   const d = await PDFDocument.create();
   for (let i = 0; i < pages; i++) d.addPage([300 + i, 400]).setRotation(degrees(rotate));
   return new Blob([(await d.save()) as BlobPart], { type: 'application/pdf' });
+}
+
+const IMG_BYTES = 200_000;
+
+/** A PDF whose pages all reference ONE big (incompressible) image XObject. */
+async function makeSharedImagePdf(pages: number) {
+  const d = await PDFDocument.create();
+  const data = new Uint8Array(IMG_BYTES);
+  for (let i = 0; i < data.length; i++) data[i] = (i * 2654435761) >>> 24;
+  const stream = d.context.stream(data, {
+    Type: 'XObject', Subtype: 'Image', Width: 400, Height: 500, ColorSpace: 'DeviceGray', BitsPerComponent: 8,
+  });
+  const ref = d.context.register(stream);
+  for (let i = 0; i < pages; i++) d.addPage([300, 400]).node.setXObject(PDFName.of('Im0'), ref);
+  return new Blob([(await d.save()) as BlobPart], { type: 'application/pdf' });
+}
+
+function bigStreams(doc: PDFDocument) {
+  return doc.context.enumerateIndirectObjects().filter(([, o]) => o instanceof PDFRawStream && o.contents.length >= IMG_BYTES).length;
 }
 
 function deps(blobs: Record<string, Blob>, calls: string[] = []): BuildDeps {
@@ -47,6 +66,37 @@ describe('buildPdf', () => {
     expect(Math.round(out.getPage(1).getWidth())).toBe(595);
     expect(out.getPage(2).getWidth()).toBe(300);
     expect(out.getPage(3).getRotation().angle).toBe(90);
+  });
+
+  it('keeps resources shared across pages of the same source only once', async () => {
+    const src = await makeSharedImagePdf(10);
+    const pages = Array.from({ length: 10 }, (_, i) => pdfPage(`s${i}`, 's', i, 10));
+    const bytes = await buildPdf(pages, { pageSize: 'a4', margins: false, level: null, compressPdfPages: false }, deps({ s: src }));
+    const out = await PDFDocument.load(bytes);
+    expect(out.getPageCount()).toBe(10);
+    expect(bigStreams(out)).toBe(1);
+    expect(bytes.byteLength).toBeLessThan(IMG_BYTES * 1.5);
+  });
+
+  it('turns the same source page used twice into two separate pages', async () => {
+    const blobs = { a: await makePdf(2), s: await makeSharedImagePdf(1) };
+    const pages = [pdfPage('x', 'a', 1, 2), pdfPage('y', 'a', 1, 2, { rotation: 90 }), pdfPage('z', 's', 0, 1), pdfPage('w', 's', 0, 1)];
+    const bytes = await buildPdf(pages, { pageSize: 'a4', margins: false, level: null, compressPdfPages: false }, deps(blobs));
+    const out = await PDFDocument.load(bytes);
+    expect(out.getPageCount()).toBe(4);
+    expect(out.getPage(0).ref).not.toEqual(out.getPage(1).ref);
+    expect(out.getPage(0).getWidth()).toBe(301);
+    expect(out.getPage(0).getRotation().angle).toBe(0);
+    expect(out.getPage(1).getWidth()).toBe(301);
+    expect(out.getPage(1).getRotation().angle).toBe(90);
+    expect(bigStreams(out)).toBe(1);
+  });
+
+  it('reports progress after each page', async () => {
+    const seen: string[] = [];
+    const blobs = { a: await makePdf(2), jpg: new Blob([JPEG]) };
+    await buildPdf([pdfPage('x', 'a', 0, 2), img('p'), pdfPage('y', 'a', 1, 2)], { pageSize: 'a4', margins: false, level: null, compressPdfPages: false }, deps(blobs), (d, t) => seen.push(`${d}/${t}`));
+    expect(seen).toEqual(['1/3', '2/3', '3/3']);
   });
 
   it('embeds untouched photos byte for byte at Original quality', async () => {

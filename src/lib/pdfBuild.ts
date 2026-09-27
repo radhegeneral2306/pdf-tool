@@ -1,4 +1,4 @@
-import { PDFDocument, degrees, type PDFImage } from 'pdf-lib';
+import { PDFDocument, degrees, type PDFImage, type PDFPage } from 'pdf-lib';
 import type { PageItem, PageSize, Rotation } from '../types';
 import { CUSTOM_LADDER, isEdited, type Level } from './compress';
 import { jpegOrientation } from './imageUtils';
@@ -107,30 +107,47 @@ export async function buildPdf(
   const out = await PDFDocument.create();
   out.setProducer('PDF Tool');
   out.setCreator('PDF Tool');
-  const sources = new Map<string, Promise<PDFDocument>>();
+  const rasterize = !!(opts.level && opts.compressPdfPages);
+
+  // Copy all pages of each source PDF in ONE copyPages call. pdf-lib creates a fresh
+  // object copier per call, so copying page by page would duplicate shared fonts,
+  // images and XObjects once per page. Duplicate indices are fine: each gets its own
+  // page dict while the resources behind it stay shared.
+  const copied = new Map<string, PDFPage[]>();
+  if (!rasterize) {
+    const wanted = new Map<string, number[]>();
+    for (const p of pages) {
+      if (p.kind !== 'pdfPage') continue;
+      const list = wanted.get(p.blobId) ?? [];
+      list.push(p.pdfPageIndex ?? 0);
+      wanted.set(p.blobId, list);
+    }
+    for (const [blobId, indices] of wanted) {
+      const src = await PDFDocument.load(await (await deps.getBlob(blobId)).arrayBuffer(), { updateMetadata: false });
+      copied.set(blobId, await out.copyPages(src, indices));
+    }
+  }
 
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    const blob = await deps.getBlob(page.blobId);
 
     if (page.kind === 'pdfPage') {
-      if (opts.level && opts.compressPdfPages) {
-        const r = await deps.rasterizePdfPage(page, blob, opts.level);
+      if (rasterize) {
+        const blob = await deps.getBlob(page.blobId);
+        const r = await deps.rasterizePdfPage(page, blob, opts.level!);
         const img = await out.embedJpg(r.bytes);
         out.addPage([r.widthPt, r.heightPt]).drawImage(img, { x: 0, y: 0, width: r.widthPt, height: r.heightPt });
       } else {
-        let src = sources.get(page.blobId);
-        if (!src) {
-          src = blob.arrayBuffer().then((b) => PDFDocument.load(b, { updateMetadata: false }));
-          sources.set(page.blobId, src);
-        }
-        const [copied] = await out.copyPages(await src, [page.pdfPageIndex ?? 0]);
-        if (page.rotation) copied.setRotation(degrees((copied.getRotation().angle + page.rotation) % 360));
-        out.addPage(copied);
+        // Pages come off each source's list in the same order they were requested.
+        const pdfPage = copied.get(page.blobId)!.shift()!;
+        if (page.rotation) pdfPage.setRotation(degrees((pdfPage.getRotation().angle + page.rotation) % 360));
+        out.addPage(pdfPage);
       }
     } else {
-      const raw = new Uint8Array(await blob.arrayBuffer());
-      const enc = passthrough(page, raw, opts.level) ?? (await deps.encodeImage(page, blob, opts.level));
+      const blob = await deps.getBlob(page.blobId);
+      // Only read the original bytes when they might be embedded as-is.
+      const direct = !opts.level && !isEdited(page) ? passthrough(page, new Uint8Array(await blob.arrayBuffer()), null) : null;
+      const enc = direct ?? (await deps.encodeImage(page, blob, opts.level));
       const img = enc.format === 'png' ? await out.embedPng(enc.bytes) : await out.embedJpg(enc.bytes);
       placeImage(out, img, enc.rotation, opts);
     }

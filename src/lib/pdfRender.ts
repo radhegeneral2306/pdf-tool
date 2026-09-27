@@ -15,20 +15,58 @@ function pdfjs() {
   return lib;
 }
 
-const docs = new Map<string, Promise<PDFDocumentProxy>>();
+// pdf.js fetches these at runtime. scripts/copy-pdfjs.mjs copies them from
+// node_modules/pdfjs-dist into public/pdfjs/ before dev/build. Without wasmUrl,
+// JBIG2/JPEG2000 images (common in scanned PDFs) render blank.
+const PDFJS_ASSETS = `${import.meta.env.BASE_URL}pdfjs/`;
 
-/** Opens a PDF once and keeps it cached by blob id. */
+type LoadingTask = import('pdfjs-dist/legacy/build/pdf.mjs').PDFDocumentLoadingTask;
+
+interface CachedDoc {
+  task: Promise<LoadingTask>;
+  doc: Promise<PDFDocumentProxy>;
+}
+
+/** Max open documents; the least recently used one is destroyed beyond this. */
+const MAX_DOCS = 4;
+// Map iteration order is insertion order, so re-inserting on access makes it an LRU.
+const docs = new Map<string, CachedDoc>();
+
+function evict(blobId: string) {
+  const entry = docs.get(blobId);
+  if (!entry) return;
+  docs.delete(blobId);
+  // PDFDocumentProxy has no destroy() in this pdf.js version; the loading task does.
+  entry.task.then((t) => t.destroy()).catch(() => {});
+}
+
+/** Opens a PDF once and keeps it cached by blob id (small LRU). */
 export function openPdf(blobId: string, blob: Blob): Promise<PDFDocumentProxy> {
-  let doc = docs.get(blobId);
-  if (!doc) {
-    doc = (async () => {
-      const m = await pdfjs();
-      const data = new Uint8Array(await blob.arrayBuffer());
-      return m.getDocument({ data }).promise;
-    })();
-    doc.catch(() => docs.delete(blobId));
-    docs.set(blobId, doc);
+  const hit = docs.get(blobId);
+  if (hit) {
+    docs.delete(blobId);
+    docs.set(blobId, hit);
+    return hit.doc;
   }
+  const task = (async () => {
+    const m = await pdfjs();
+    const data = new Uint8Array(await blob.arrayBuffer());
+    return m.getDocument({
+      data,
+      wasmUrl: `${PDFJS_ASSETS}wasm/`,
+      cMapUrl: `${PDFJS_ASSETS}cmaps/`,
+      cMapPacked: true,
+      standardFontDataUrl: `${PDFJS_ASSETS}standard_fonts/`,
+      iccUrl: `${PDFJS_ASSETS}iccs/`,
+    });
+  })();
+  const doc = task.then((t) => t.promise);
+  const entry: CachedDoc = { task, doc };
+  doc.catch(() => {
+    if (docs.get(blobId) === entry) evict(blobId);
+  });
+  docs.set(blobId, entry);
+  while (docs.size > MAX_DOCS) evict(docs.keys().next().value!);
   return doc;
 }
 
@@ -56,7 +94,7 @@ export async function renderPdfPage(
   const ctx = canvas.getContext('2d')!;
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+  await page.render({ canvas, viewport }).promise;
   page.cleanup();
   return { canvas, widthPt: base.width, heightPt: base.height };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { Project } from '../types';
-import { getProject, listProjects, putProject, uid } from './db';
+import { clearAll, deleteProject, getProject, listProjects, putProject, uid } from './db';
 import { dateName } from '../lib/fileName';
 
 /** In-memory copy of opened projects. Every change is written to IndexedDB right away. */
@@ -39,10 +39,37 @@ export function flushSaves() {
 
 export function updateProject(id: string, fn: (p: Project) => Project) {
   const cur = cache.get(id);
-  if (!cur) return;
+  if (cur === null) return;
+  if (cur === undefined) {
+    // Not opened in this session (e.g. the app reloaded on the camera screen): load it first.
+    getProject(id).then((p) => {
+      if (!cache.has(id)) cache.set(id, p ?? null);
+      if (cache.get(id)) updateProject(id, fn);
+      else emit();
+    });
+    return;
+  }
   const next = { ...fn(cur), updatedAt: Date.now() };
   cache.set(id, next);
   save(next);
+  emit();
+}
+
+/** Deletes a project for good, after any pending save has landed (so it can't come back). */
+export async function removeProject(id: string) {
+  cache.set(id, null);
+  await flushSaves();
+  await deleteProject(id);
+  cache.delete(id);
+  emit();
+}
+
+/** Deletes everything, after pending saves have landed. */
+export async function removeAll() {
+  for (const k of cache.keys()) cache.set(k, null);
+  await flushSaves();
+  await clearAll();
+  cache.clear();
   emit();
 }
 

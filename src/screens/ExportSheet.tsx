@@ -11,6 +11,7 @@ import { buildPdf, buildPdfUnder } from '../lib/pdfBuild';
 import { browserDeps } from '../lib/exportDeps';
 import { PRESETS, estimateBytes, formatBytes, type Level } from '../lib/compress';
 import { defaultExportName, finalFileName } from '../lib/fileName';
+import { isIOS, isStandalone } from '../lib/install';
 import type { OutputSize, PageSize, Project } from '../types';
 import s from './ExportSheet.module.css';
 
@@ -104,6 +105,9 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
   };
 
   const save = async () => {
+    // In an installed iPhone app a download link opens the PDF with no way back.
+    // The share sheet has "Save to Files" instead.
+    if (isIOS() && isStandalone() && typeof navigator.canShare === 'function') return share();
     const file = await create();
     if (!file) return;
     const url = URL.createObjectURL(file);

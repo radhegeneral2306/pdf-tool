@@ -91,13 +91,18 @@ export function DocumentView({ id }: { id: string }) {
   };
 
   const deleteSelected = () => {
-    const before = pages;
-    const count = chosen.length;
+    // Remember where each deleted page was, so Undo puts them back without losing later edits.
+    const removed = pages.map((pg, i) => ({ pg, i })).filter(({ pg }) => selected.has(pg.id));
     updateProject(id, (p) => ({ ...p, pages: p.pages.filter((pg) => !selected.has(pg.id)) }));
     exitSelect();
-    showToast(`${pagesLabel(count)} deleted`, {
+    showToast(`${pagesLabel(removed.length)} deleted`, {
       label: 'Undo',
-      run: () => updateProject(id, (p) => ({ ...p, pages: before })),
+      run: () =>
+        updateProject(id, (p) => {
+          const next = [...p.pages];
+          for (const { pg, i } of removed) next.splice(Math.min(i, next.length), 0, pg);
+          return { ...p, pages: next };
+        }),
     });
   };
 

@@ -24,6 +24,12 @@ Open https://radhegeneral2306.github.io/pdf-tool/ and then:
 - **Android (Chrome):** menu (three dots) > **Install app**
 - **iPhone (Safari):** **Share** > **Add to Home Screen**
 
+## Supported devices
+
+- iPhone / iPad: iOS 16.4 or newer (Safari)
+- Android: recent Chrome
+- Computer: recent Chrome, Edge, Safari or Firefox
+
 ## GitHub Pages setup (one time)
 
 1. In the repo, go to **Settings > Pages**.

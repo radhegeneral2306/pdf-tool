@@ -20,6 +20,7 @@ import { canvasToBlob, freeCanvas, renderImagePage, type RenderEdits } from '../
 import { renderPdfPage } from '../lib/pdfRender';
 import { FULL_QUAD, isConvex, isFullQuad, rotateQuad } from '../lib/perspective';
 import { FILTERS } from '../lib/filterMeta';
+import { limit } from '../lib/thumbs';
 import type { FilterId, PageItem, Quad, Rotation } from '../types';
 import s from './PageEditor.module.css';
 
@@ -41,7 +42,8 @@ function usePreview(page: PageItem | undefined, edits: RenderEdits | null, maxDi
     if (!page || !edits) return;
     let alive = true;
     let made: string | null = null;
-    (async () => {
+    // Queued (max 2 at once) so opening Filters doesn't decode 5 full photos together.
+    limit(async () => {
       const blob = await getBlob(page.blobId);
       if (!blob || !alive) return;
       const canvas =
@@ -52,7 +54,7 @@ function usePreview(page: PageItem | undefined, edits: RenderEdits | null, maxDi
       made = await toUrl(canvas);
       if (alive) setOut({ key, url: made, aspect });
       else URL.revokeObjectURL(made);
-    })().catch(() => alive && setOut({ key, url: '', aspect: 1 }));
+    }).catch(() => alive && setOut({ key, url: '', aspect: 1 }));
     return () => {
       alive = false;
     };
@@ -68,8 +70,10 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
   const page = project && index >= 0 ? project.pages[index] : undefined;
   const isImage = page?.kind === 'image';
 
-  const [draft, setDraft] = useState<{ rotation: Rotation; crop: Quad; filter: FilterId } | null>(null);
-  const [mode, setMode] = useState<Mode>('crop');
+  const [draft, setDraft] = useState<{ rotation: Rotation; crop: Quad; filter: FilterId } | null>(() =>
+    page ? { rotation: page.rotation, crop: page.crop ?? FULL_QUAD, filter: page.filter } : null,
+  );
+  const [mode, setMode] = useState<Mode>(page?.kind === 'pdfPage' ? 'rotate' : 'crop');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -84,7 +88,7 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
   const cropPreview = usePreview(page, isImage && mode === 'crop' ? cropEdits : null, PREVIEW_DIM);
   const preview = usePreview(page, mode !== 'crop' || !isImage ? fullEdits : null, PREVIEW_DIM);
 
-  if (project === undefined) return <div className={s.editor} />;
+  if (project === undefined || (page && !draft)) return <div className={s.editor} />;
   if (!project || !page || !draft) {
     return (
       <div className={s.editor}>
@@ -122,16 +126,18 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
 
   const applyAll = () => {
     const f = draft.filter;
-    commit();
+    if (!commit()) return;
     updateProject(projectId, (p) => ({ ...p, pages: p.pages.map((pg) => (pg.kind === 'image' ? { ...pg, filter: f } : pg)) }));
     showToast(`${FILTERS.find((x) => x.id === f)?.label} applied to all photos`);
   };
 
   const remove = () => {
-    const before = project.pages;
     const next = project.pages[index + 1] ?? project.pages[index - 1];
     updateProject(projectId, (p) => ({ ...p, pages: p.pages.filter((pg) => pg.id !== pageId) }));
-    showToast('Page deleted', { label: 'Undo', run: () => updateProject(projectId, (p) => ({ ...p, pages: before })) });
+    showToast('Page deleted', {
+      label: 'Undo',
+      run: () => updateProject(projectId, (p) => ({ ...p, pages: [...p.pages.slice(0, index), page, ...p.pages.slice(index)] })),
+    });
     if (next) navigate(`/doc/${projectId}/edit/${next.id}`, { replace: true });
     else goBack(`/doc/${projectId}`);
   };

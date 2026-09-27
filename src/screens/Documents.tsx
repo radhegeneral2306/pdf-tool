@@ -6,8 +6,8 @@ import { DocThumb } from '../components/DocThumb';
 import { ActionSheet } from '../components/Sheet';
 import { Button } from '../components/Controls';
 import { navigate } from '../router';
-import { forgetProject, useProjectList } from '../storage/projects';
-import { deleteProject, storageUsage } from '../storage/db';
+import { removeProject, useProjectList } from '../storage/projects';
+import { storageUsage } from '../storage/db';
 import { formatBytes } from '../lib/compress';
 import { dateLabel, pagesLabel } from '../lib/format';
 import type { Project } from '../types';
@@ -111,9 +111,7 @@ export function Documents() {
             destructive: true,
             onSelect: async () => {
               if (!confirm) return;
-              forgetProject(confirm.id);
-              await deleteProject(confirm.id);
-              forgetProject(confirm.id);
+              await removeProject(confirm.id);
             },
           },
         ]}
