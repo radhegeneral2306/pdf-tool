@@ -8,6 +8,7 @@ import {
   ImagesIcon,
   MagicWandIcon,
   PlusIcon,
+  ScissorsIcon,
   TrashIcon,
 } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
@@ -33,13 +34,14 @@ export function rotatePage(p: PageItem, delta: Rotation): PageItem {
   return { ...p, rotation: ((p.rotation + delta) % 360) as Rotation, crop: p.crop && rotateQuad(p.crop, delta) };
 }
 
-export function DocumentView({ id }: { id: string }) {
+export function DocumentView({ id, startSelecting }: { id: string; startSelecting?: boolean }) {
   const project = useProject(id);
-  const [selecting, setSelecting] = useState(false);
+  const [selecting, setSelecting] = useState(!!startSelecting);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [addSheet, setAddSheet] = useState(false);
   const [filterSheet, setFilterSheet] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [extracting, setExtracting] = useState<PageItem[] | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
 
   const add = useCallback(
@@ -157,7 +159,9 @@ export function DocumentView({ id }: { id: string }) {
         <>
           <p className={s.hint}>
             {selecting
-              ? `${chosen.length} selected`
+              ? chosen.length
+                ? `${chosen.length} selected`
+                : 'Select the pages you want, then tap Extract.'
               : hasMouse()
                 ? `${pagesLabel(pages.length)}. Click a page to edit, drag to reorder. You can also drop files here.`
                 : `${pagesLabel(pages.length)}. Tap a page to edit, press and hold to move it.`}
@@ -175,9 +179,10 @@ export function DocumentView({ id }: { id: string }) {
         </>
       )}
 
-      <footer className={s.toolbar}>
+      <footer className={`${s.toolbar} ${selecting ? s.four : ''}`}>
         {selecting ? (
           <>
+            <ToolButton label="Extract" icon={<ScissorsIcon size={24} />} disabled={!chosen.length} onClick={() => setExtracting(chosen)} />
             <ToolButton label="Rotate" icon={<ArrowClockwiseIcon size={24} />} disabled={!chosen.length} onClick={rotateSelected} />
             <ToolButton label="Filter" icon={<MagicWandIcon size={24} />} disabled={!chosen.some((p) => p.kind === 'image')} onClick={() => setFilterSheet(true)} />
             <ToolButton label="Delete" icon={<TrashIcon size={24} />} disabled={!chosen.length} onClick={deleteSelected} destructive />
@@ -240,6 +245,7 @@ export function DocumentView({ id }: { id: string }) {
       </Sheet>
 
       {exporting && <ExportSheet project={project} onClose={() => setExporting(false)} />}
+      {extracting && <ExportSheet project={project} pages={extracting} onClose={() => setExtracting(null)} />}
     </main>
   );
 }

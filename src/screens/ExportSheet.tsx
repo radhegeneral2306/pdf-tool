@@ -12,7 +12,7 @@ import { browserDeps } from '../lib/exportDeps';
 import { PRESETS, estimateBytes, formatBytes, type Level } from '../lib/compress';
 import { defaultExportName, finalFileName } from '../lib/fileName';
 import { isIOS, isStandalone } from '../lib/install';
-import type { OutputSize, PageSize, Project } from '../types';
+import type { OutputSize, PageItem, PageSize, Project } from '../types';
 import s from './ExportSheet.module.css';
 
 const SIZE_HELP: Record<OutputSize, string> = {
@@ -25,7 +25,9 @@ const SIZE_HELP: Record<OutputSize, string> = {
 
 const levelFor = (size: OutputSize): Level | null => (size === 'original' || size === 'custom' ? null : PRESETS[size]);
 
-export function ExportSheet({ project, onClose }: { project: Project; onClose: () => void }) {
+export function ExportSheet({ project, pages: only, onClose }: { project: Project; pages?: PageItem[]; onClose: () => void }) {
+  // `only` = just the selected pages (Extract); otherwise the whole document.
+  const pages = only ?? project.pages;
   const settings = useSettings();
   const [name, setName] = useState(() => defaultExportName(settings.exportedNames));
   // Until the user types a name, every export uses the next free date name (27-09-26, then 27-09-26 (2)).
@@ -40,18 +42,18 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ file: File; note?: string } | null>(null);
 
-  const hasImages = project.pages.some((p) => p.kind === 'image');
-  const hasPdf = project.pages.some((p) => p.kind === 'pdfPage');
+  const hasImages = pages.some((p) => p.kind === 'image');
+  const hasPdf = pages.some((p) => p.kind === 'pdfPage');
 
   useEffect(() => {
-    const ids = [...new Set(project.pages.map((p) => p.blobId))];
+    const ids = [...new Set(pages.map((p) => p.blobId))];
     Promise.all(ids.map(async (id) => [id, await getBlobSize(id)] as const)).then((e) => setBlobSizes(new Map(e)));
-  }, [project.pages]);
+  }, [pages]);
 
   const estimate = useMemo(() => {
     if (!blobSizes || size === 'custom') return null;
-    return estimateBytes(project.pages, blobSizes, levelFor(size), compressPdf);
-  }, [blobSizes, project.pages, size, compressPdf]);
+    return estimateBytes(pages, blobSizes, levelFor(size), compressPdf);
+  }, [blobSizes, pages, size, compressPdf]);
 
   // Any change to the options makes the previous result stale.
   useEffect(() => {
@@ -66,7 +68,7 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
     if (result) return result.file;
     setError(null);
     const fileName = nameEdited ? finalFileName(name, settings.exportedNames) : `${defaultExportName(settings.exportedNames)}.pdf`;
-    const total = project.pages.length;
+    const total = pages.length;
     try {
       let bytes: Uint8Array;
       let note: string | undefined;
@@ -76,7 +78,7 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
           setError('Enter a size limit, for example 2.');
           return null;
         }
-        const r = await buildPdfUnder(project.pages, mb * 1024 * 1024, { pageSize, margins, compressPdfPages: compressPdf }, browserDeps, (n) =>
+        const r = await buildPdfUnder(pages, mb * 1024 * 1024, { pageSize, margins, compressPdfPages: compressPdf }, browserDeps, (n) =>
           setProgress(`Finding best quality, try ${n}`),
         );
         bytes = r.bytes;
@@ -86,7 +88,7 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
           }`;
       } else {
         setProgress(`Creating PDF, 0 of ${total}`);
-        bytes = await buildPdf(project.pages, { pageSize, margins, level: levelFor(size), compressPdfPages: compressPdf }, browserDeps, (d) =>
+        bytes = await buildPdf(pages, { pageSize, margins, level: levelFor(size), compressPdfPages: compressPdf }, browserDeps, (d) =>
           setProgress(`Creating PDF, ${d} of ${total}`),
         );
       }
@@ -143,7 +145,7 @@ export function ExportSheet({ project, onClose }: { project: Project; onClose: (
     <Sheet
       open
       onClose={busy ? () => {} : onClose}
-      title="Export PDF"
+      title={only ? `Extract ${only.length} ${only.length === 1 ? 'Page' : 'Pages'}` : 'Export PDF'}
       left={
         <BarButton onClick={onClose} disabled={busy}>
           Cancel

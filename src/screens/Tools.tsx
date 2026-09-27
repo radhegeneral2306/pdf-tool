@@ -1,4 +1,4 @@
-import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon, ScissorsIcon } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
 import { Cell, Section } from '../components/List';
 import { DocThumb } from '../components/DocThumb';
@@ -66,6 +66,18 @@ export function Tools() {
           subtitle="Join several PDFs into one"
           chevron
           onClick={() => start(ACCEPT_PDF, 'Merged')}
+        />
+        <Cell
+          icon={<ScissorsIcon size={19} weight="fill" />}
+          iconBg="#AF52DE"
+          title="Split PDF"
+          subtitle="Pick pages from a PDF"
+          chevron
+          onClick={() =>
+            pickFiles(ACCEPT_PDF, { multiple: false }).then((files) => {
+              if (files.length) withBusy('Opening PDF', () => createFromFiles(files, `Split ${dateName()}`, { select: true }));
+            })
+          }
         />
         <Cell
           icon={<StackIcon size={19} weight="fill" />}

@@ -31,7 +31,7 @@ export function App() {
       {route.name === 'documents' && <Documents />}
       {route.name === 'settings' && <Settings />}
       {route.name === 'scan' && <Camera />}
-      {route.name === 'doc' && <DocumentView key={route.id} id={route.id} />}
+      {route.name === 'doc' && <DocumentView key={route.id} id={route.id} startSelecting={route.select} />}
       {route.name === 'camera' && <Camera projectId={route.id} />}
       {route.name === 'edit' && (
         <>
