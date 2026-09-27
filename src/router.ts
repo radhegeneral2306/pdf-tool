@@ -6,6 +6,7 @@ export type Route =
   | { name: 'settings' }
   | { name: 'scan' }
   | { name: 'open' }
+  | { name: 'ocr' }
   | { name: 'doc'; id: string; select?: boolean }
   | { name: 'camera'; id: string }
   | { name: 'edit'; id: string; pageId: string };
@@ -18,6 +19,7 @@ export function parse(hash: string): Route {
   if (a === 'settings') return { name: 'settings' };
   if (a === 'scan') return { name: 'scan' };
   if (a === 'open') return { name: 'open' };
+  if (a === 'ocr') return { name: 'ocr' };
   if (a === 'doc' && b) {
     if (c === 'camera') return { name: 'camera', id: b };
     if (c === 'edit' && d) return { name: 'edit', id: b, pageId: d };

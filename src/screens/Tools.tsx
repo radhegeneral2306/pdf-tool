@@ -1,4 +1,4 @@
-import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon, ScissorsIcon, PencilSimpleIcon } from '@phosphor-icons/react';
+import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon, ScissorsIcon, PencilSimpleIcon, TextAaIcon } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
 import { Cell, Section } from '../components/List';
 import { DocThumb } from '../components/DocThumb';
@@ -87,6 +87,14 @@ export function Tools() {
               if (files.length) withBusy('Opening PDF', () => createFromFiles(files, `Split ${dateName()}`, { select: true }));
             })
           }
+        />
+        <Cell
+          icon={<TextAaIcon size={19} weight="bold" />}
+          iconBg="#30B0C7"
+          title="Extract Text (OCR)"
+          subtitle="Read text from photos and PDFs"
+          chevron
+          onClick={() => navigate('/ocr')}
         />
         <Cell
           icon={<StackIcon size={19} weight="fill" />}
