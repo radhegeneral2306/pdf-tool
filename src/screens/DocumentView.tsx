@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
 import { PageGrid } from '../components/PageGrid';
+import { PageViewer } from '../components/PageViewer';
 import { ActionSheet, Sheet } from '../components/Sheet';
 import { Button } from '../components/Controls';
 import { Section } from '../components/List';
@@ -42,6 +43,7 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
   const [filterSheet, setFilterSheet] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [extracting, setExtracting] = useState<PageItem[] | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
 
   const add = useCallback(
@@ -162,7 +164,7 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
             {selecting
               ? chosen.length
                 ? `${chosen.length} selected`
-                : 'Select the pages you want, then tap Extract.'
+                : 'Select the pages you want, then tap Extract. Tap the magnifier to see a page larger.'
               : hasMouse()
                 ? `${pagesLabel(pages.length)}. Click a page to edit, drag to reorder. You can also drop files here.`
                 : `${pagesLabel(pages.length)}. Tap a page to edit, press and hold to move it.`}
@@ -175,6 +177,7 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
             onToggle={toggle}
             onOpen={(pid) => navigate(`/doc/${id}/edit/${pid}`)}
             onReorder={(next) => updateProject(id, (p) => ({ ...p, pages: next }))}
+            onZoom={setViewing}
           />
           </div>
         </>
@@ -245,6 +248,9 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
         </Section>
       </Sheet>
 
+      {viewing !== null && selecting && (
+        <PageViewer pages={pages} startIndex={viewing} selected={selected} onToggle={toggle} onClose={() => setViewing(null)} />
+      )}
       {exporting && <ExportSheet project={project} onClose={() => setExporting(false)} />}
       {extracting && <ExportSheet project={project} pages={extracting} onClose={() => setExtracting(null)} />}
     </main>
