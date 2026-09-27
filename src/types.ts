@@ -34,6 +34,8 @@ export interface Project {
   title: string;
   createdAt: number;
   updatedAt: number;
+  /** Default export file name (the original name for PDFs opened with Edit PDF). */
+  exportName?: string;
   pages: PageItem[];
 }
 
