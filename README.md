@@ -4,7 +4,8 @@ A small, offline-first web app for everyday PDF jobs on your phone. Installs to 
 
 ## Features
 
-- Scan documents with the camera (batch mode), then crop by dragging 4 corners
+- Scan documents with the camera (batch mode). Page edges are found automatically (OpenCV) with a live outline; corners can still be dragged
+- Auto edge detection downloads about 3.5 MB once, the first time the scanner opens, then works offline
 - Filters: Original, Clear Scan, Black & White, Color
 - Turn images into a PDF
 - Split PDF: pick the pages you want and save them as a new PDF

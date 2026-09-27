@@ -10,6 +10,9 @@ import { pickFiles, ACCEPT_IMAGES } from '../lib/pickFiles';
 import { canvasToBlob, freeCanvas } from '../lib/imageUtils';
 import { showToast } from '../components/Toast';
 import { dateName } from '../lib/fileName';
+import { detectInBlob, detectQuad, warmUp, type Detection } from '../lib/edgeDetect';
+import { quadDistance } from '../lib/quad';
+import type { Quad } from '../types';
 import s from './Camera.module.css';
 
 type CamState = 'starting' | 'live' | 'denied' | 'unavailable';
@@ -24,12 +27,57 @@ export function Camera({ projectId }: { projectId?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const [state, setState] = useState<CamState>('starting');
-  const [shots, setShots] = useState<{ blob: Blob; url: string }[]>([]);
+  const [shots, setShots] = useState<{ blob: Blob; url: string; edges: Promise<Detection | null> }[]>([]);
   const [torch, setTorch] = useState<boolean | null>(null);
   const [flash, setFlash] = useState(0);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [capturing, setCapturing] = useState(false);
   useProject(projectId); // load the document early, in case the app was reloaded on this screen
+  const [cv, setCv] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [liveQuad, setLiveQuad] = useState<Quad | null>(null);
+
+  // Opening the scanner is the only place OpenCV starts downloading (never on app start).
+  useEffect(() => {
+    let alive = true;
+    warmUp().then((ok) => {
+      if (!alive) return;
+      setCv(ok ? 'ready' : 'failed');
+      if (!ok) showToast('Auto edge detection needs internet the first time. You can still crop by hand.');
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Live page outline on the preview. Small frames, only when the detector is idle,
+  // slower when the phone is slow, paused when the app is in the background.
+  useEffect(() => {
+    if (cv !== 'ready' || state !== 'live') return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let interval = 400;
+    let last: Quad | null = null;
+    const tick = async () => {
+      if (stop) return;
+      const v = video.current;
+      if (v && !document.hidden && v.videoWidth) {
+        const r = await detectQuad(v, 320);
+        if (stop) return;
+        if (r) interval = r.ms > 120 ? 800 : 400;
+        const q = r?.quad ?? null;
+        if (!q || !last || quadDistance(q, last) > 0.02) {
+          last = q;
+          setLiveQuad(q);
+        }
+      }
+      timer = setTimeout(tick, interval);
+    };
+    timer = setTimeout(tick, 300);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [cv, state]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +117,9 @@ export function Camera({ projectId }: { projectId?: string }) {
   useEffect(() => () => shotsRef.current.forEach((sh) => URL.revokeObjectURL(sh.url)), []);
 
   const addShot = (blob: Blob) => {
-    setShots((cur) => [...cur, { blob, url: URL.createObjectURL(blob) }]);
+    // Find the page edges right away in the background, while the user keeps shooting.
+    const edges = detectInBlob(blob).catch(() => null);
+    setShots((cur) => [...cur, { blob, url: URL.createObjectURL(blob), edges }]);
   };
 
   const capture = async () => {
@@ -126,13 +176,23 @@ export function Camera({ projectId }: { projectId?: string }) {
 
   const done = async () => {
     if (!shots.length) return;
-    await withBusy('Saving scans', async () => {
+    await withBusy('Finding page edges', async () => {
+      const found = await Promise.all(shots.map((sh) => sh.edges));
       const { pages, errors } = await importFiles(
         shots.map((sh) => sh.blob),
         getSettings().scanFilter,
       );
       if (errors.length) showToast(errors[0]);
       if (!pages.length) return;
+      // Pre-place the crop corners on the detected page edges.
+      if (pages.length === shots.length) found.forEach((d, i) => d && (pages[i].crop = d.quad));
+      const missed = found.filter((d) => !d).length;
+      if (!errors.length && cv === 'ready' && missed)
+        showToast(
+          missed === shots.length && shots.length === 1
+            ? "Couldn't find the page edges. Adjust the corners by hand."
+            : `Couldn't find edges on ${missed} of ${shots.length} photos. Adjust those corners by hand.`,
+        );
       stream.current?.getTracks().forEach((t) => t.stop());
       let id = projectId;
       if (id) updateProject(id, (p) => ({ ...p, pages: [...p.pages, ...pages] }));
@@ -163,7 +223,7 @@ export function Camera({ projectId }: { projectId?: string }) {
 
       <div className={s.viewport}>
         <video ref={video} className={s.video} playsInline muted autoPlay />
-        {state === 'live' && <div className={s.guide} aria-hidden />}
+        {state === 'live' && (liveQuad ? <LiveOutline video={video.current} quad={liveQuad} /> : <div className={s.guide} aria-hidden />)}
         {flash > 0 && <div key={flash} className={s.flash} aria-hidden />}
         {(state === 'denied' || state === 'unavailable') && (
           <div className={s.message}>
@@ -215,5 +275,23 @@ export function Camera({ projectId }: { projectId?: string }) {
         actions={[{ label: 'Discard Photos', destructive: true, onSelect: () => goBack(projectId ? `/doc/${projectId}` : '/') }]}
       />
     </div>
+  );
+}
+
+/** Draws the detected page outline over the camera preview (video uses object-fit: contain). */
+function LiveOutline({ video, quad }: { video: HTMLVideoElement | null; quad: Quad }) {
+  if (!video || !video.videoWidth) return null;
+  const bw = video.clientWidth;
+  const bh = video.clientHeight;
+  const k = Math.min(bw / video.videoWidth, bh / video.videoHeight);
+  const w = video.videoWidth * k;
+  const h = video.videoHeight * k;
+  const ox = (bw - w) / 2;
+  const oy = (bh - h) / 2;
+  const pts = quad.map((p) => `${ox + p.x * w},${oy + p.y * h}`).join(' ');
+  return (
+    <svg className={s.outline} width={bw} height={bh} aria-hidden>
+      <polygon points={pts} />
+    </svg>
   );
 }

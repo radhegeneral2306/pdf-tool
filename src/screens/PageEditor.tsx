@@ -15,7 +15,9 @@ import { ActionSheet } from '../components/Sheet';
 import { showToast } from '../components/Toast';
 import { goBack, navigate } from '../router';
 import { updateProject, useProject } from '../storage/projects';
-import type { RenderEdits } from '../lib/imageUtils';
+import { freeCanvas, renderImagePage, type RenderEdits } from '../lib/imageUtils';
+import { detectQuad } from '../lib/edgeDetect';
+import { getBlob } from '../storage/db';
 import { FULL_QUAD, isConvex, isFullQuad, rotateQuad } from '../lib/perspective';
 import { FILTERS } from '../lib/filterMeta';
 import { usePreview } from '../lib/usePreview';
@@ -37,6 +39,7 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
   );
   const [mode, setMode] = useState<Mode>(page?.kind === 'pdfPage' ? 'rotate' : 'crop');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [detecting, setDetecting] = useState(false);
 
   useEffect(() => {
     if (page && !draft) {
@@ -81,6 +84,26 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
   const go = (delta: number) => {
     const next = project.pages[index + delta];
     if (next && commit()) navigate(`/doc/${projectId}/edit/${next.id}`, { replace: true });
+  };
+
+  /** Finds the page edges automatically (loads OpenCV on first use). */
+  const autoDetect = async () => {
+    if (detecting) return;
+    setDetecting(true);
+    try {
+      const blob = await getBlob(page.blobId);
+      if (!blob) return;
+      // Detect on the rotated photo so the corners match what the user sees.
+      const { canvas } = await renderImagePage(blob, { rotation: draft.rotation, filter: 'original' }, 800);
+      const found = await detectQuad(canvas, 800);
+      freeCanvas(canvas);
+      if (found) setDraft((d) => d && { ...d, crop: found.quad });
+      else showToast("Couldn't find the page edges. Drag the corners by hand.");
+    } catch {
+      showToast("Couldn't find the page edges. Drag the corners by hand.");
+    } finally {
+      setDetecting(false);
+    }
   };
 
   const rotate = (delta: Rotation) =>
@@ -143,7 +166,10 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
       <div className={s.tools}>
         {mode === 'crop' && isImage && (
           <div className={s.row}>
-            <span className={s.help}>Drag the corners to the edges of the page</span>
+            <span className={s.help}>Drag corners to the page edges</span>
+            <button className={s.textBtn} onClick={autoDetect} disabled={detecting}>
+              {detecting ? <Spinner size={18} light /> : 'Auto'}
+            </button>
             <button className={s.textBtn} onClick={() => setDraft({ ...draft, crop: FULL_QUAD })} disabled={isFullQuad(draft.crop)}>
               Reset
             </button>
