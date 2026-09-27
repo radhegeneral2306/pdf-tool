@@ -131,6 +131,16 @@ describe('buildPdf', () => {
   });
 });
 
+describe('extract pages (split)', () => {
+  it('builds a PDF from only the chosen pages, in order', async () => {
+    const blobs = { s: await makePdf(3) };
+    const chosen = [pdfPage('p0', 's', 0, 3), pdfPage('p2', 's', 2, 3)];
+    const out = await PDFDocument.load(await buildPdf(chosen, { pageSize: 'a4', margins: false, level: null, compressPdfPages: false }, deps(blobs)));
+    expect(out.getPageCount()).toBe(2);
+    expect(out.getPages().map((p) => p.getWidth())).toEqual([300, 302]);
+  });
+});
+
 describe('estimateBytes', () => {
   it('gets smaller with each preset', () => {
     const pages = [img('a', { width: 4000, height: 3000, blobId: 'x' })];

@@ -50,6 +50,9 @@
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }
+.four {
+  grid-template-columns: repeat(4, 1fr);
+}
 .tool {
   display: flex;
   flex-direction: column;
