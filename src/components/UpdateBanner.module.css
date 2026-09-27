@@ -1,0 +1,25 @@
+.banner {
+  position: fixed;
+  z-index: 75;
+  top: calc(var(--safe-top) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--r-btn);
+  background: var(--elevated);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18), 0 0 0 0.5px var(--separator);
+  font-size: 15px;
+  white-space: nowrap;
+  animation: fade-in 0.3s;
+}
+.banner button {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: var(--tint);
+  color: var(--on-tint);
+  font-weight: 600;
+}

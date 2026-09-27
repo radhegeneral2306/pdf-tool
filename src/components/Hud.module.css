@@ -1,0 +1,25 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  animation: fade-in 0.2s;
+}
+.hud {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 150px;
+  max-width: 220px;
+  min-height: 130px;
+  padding: 20px;
+  border-radius: var(--r-sheet);
+  background: rgba(44, 44, 46, 0.9);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+}

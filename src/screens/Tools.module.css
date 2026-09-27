@@ -1,0 +1,101 @@
+.screen {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.dropping::after {
+  content: 'Drop photos or PDFs to make a PDF';
+  position: fixed;
+  inset: 12px;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  border: 3px dashed var(--tint);
+  border-radius: var(--r-sheet);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--tint);
+  font-size: 22px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.scan {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: calc(100% - 32px - var(--safe-left) - var(--safe-right));
+  margin: 8px calc(16px + var(--safe-right)) 35px calc(16px + var(--safe-left));
+  padding: 18px 18px;
+  border-radius: var(--r-btn);
+  background: var(--tint);
+  color: var(--on-tint);
+  text-align: left;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s;
+}
+.scan:active {
+  transform: scale(0.98);
+  background: var(--tint-pressed);
+}
+.scanIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-btn);
+  background: rgba(255, 255, 255, 0.2);
+  flex: none;
+}
+.scanText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.scanText strong {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.38px;
+}
+.scanText span {
+  font-size: 15px;
+  opacity: 0.85;
+  letter-spacing: -0.24px;
+}
+.scanCam {
+  opacity: 0.85;
+  flex: none;
+}
+.recent {
+  margin: 0 calc(16px + var(--safe-right)) 24px calc(16px + var(--safe-left));
+}
+.recentHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 4px 8px;
+}
+.recentHead h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+}
+.recentHead button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--tint);
+  min-height: 44px;
+}
+.recentGroup {
+  border-radius: var(--r-cell);
+  overflow: hidden;
+  background: var(--cell);
+}
+.privacy {
+  margin: 0 32px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--label-2);
+}
