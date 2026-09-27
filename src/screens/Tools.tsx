@@ -1,4 +1,4 @@
-import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon, ScissorsIcon } from '@phosphor-icons/react';
+import { CameraIcon, FilePdfIcon, ImagesIcon, MoonIcon, StackIcon, SunIcon, ScanIcon, CaretRightIcon, ScissorsIcon, PencilSimpleIcon } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
 import { Cell, Section } from '../components/List';
 import { DocThumb } from '../components/DocThumb';
@@ -10,6 +10,7 @@ import { useIsDark } from '../theme/useTheme';
 import { ACCEPT_ANY, ACCEPT_IMAGES, ACCEPT_PDF, pickFiles } from '../lib/pickFiles';
 import { createFromFiles } from '../lib/importFlow';
 import { useFileDrop } from '../lib/dropFiles';
+import { openFiles } from '../lib/openWith';
 import { dateName } from '../lib/fileName';
 import { dateLabel, pagesLabel } from '../lib/format';
 import s from './Tools.module.css';
@@ -68,13 +69,21 @@ export function Tools() {
           onClick={() => start(ACCEPT_PDF, 'Merged')}
         />
         <Cell
+          icon={<PencilSimpleIcon size={19} weight="fill" />}
+          iconBg="#5856D6"
+          title="Edit PDF"
+          subtitle="Rotate, reorder, add or remove pages"
+          chevron
+          onClick={() => pickFiles(ACCEPT_PDF, { multiple: false }).then((files) => openFiles(files))}
+        />
+        <Cell
           icon={<ScissorsIcon size={19} weight="fill" />}
           iconBg="#AF52DE"
           title="Split PDF"
-          subtitle="Pick pages from a PDF"
+          subtitle="Pick pages from one or more PDFs"
           chevron
           onClick={() =>
-            pickFiles(ACCEPT_PDF, { multiple: false }).then((files) => {
+            pickFiles(ACCEPT_PDF, { multiple: true }).then((files) => {
               if (files.length) withBusy('Opening PDF', () => createFromFiles(files, `Split ${dateName()}`, { select: true }));
             })
           }

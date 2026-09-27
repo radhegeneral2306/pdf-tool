@@ -117,3 +117,15 @@
 .zoom:active {
   transform: scale(0.94);
 }
+.source {
+  max-width: 100%;
+  margin-top: -4px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--fill);
+  font-size: 11px;
+  color: var(--label-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -20,6 +20,8 @@ async function isPdf(f: Blob) {
  * Stores files on the device and turns them into pages.
  * Originals are kept byte for byte, nothing is downsized.
  */
+const fileName = (f: Blob) => (f instanceof File && f.name ? f.name : undefined);
+
 export async function importFiles(files: Blob[], imageFilter: FilterId): Promise<ImportResult> {
   const pages: PageItem[] = [];
   const errors: string[] = [];
@@ -44,13 +46,13 @@ export async function importFiles(files: Blob[], imageFilter: FilterId): Promise
       }
       const blobId = await putBlob(f);
       for (let i = 0; i < count; i++)
-        pages.push({ id: uid(), kind: 'pdfPage', blobId, pdfPageIndex: i, pdfPageCount: count, rotation: 0, filter: 'original' });
+        pages.push({ id: uid(), kind: 'pdfPage', blobId, sourceName: fileName(f), pdfPageIndex: i, pdfPageCount: count, rotation: 0, filter: 'original' });
       continue;
     }
     try {
       const { width, height } = await imageSize(f);
       const blobId = await putBlob(f);
-      pages.push({ id: uid(), kind: 'image', blobId, width, height, rotation: 0, filter: imageFilter });
+      pages.push({ id: uid(), kind: 'image', blobId, sourceName: fileName(f), width, height, rotation: 0, filter: imageFilter });
     } catch {
       const heic = /hei[cf]/i.test(f.type) || (f instanceof File && /\.hei[cf]$/i.test(f.name));
       errors.push(

@@ -163,7 +163,7 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
           <p className={s.hint}>
             {selecting
               ? chosen.length
-                ? `${chosen.length} selected`
+                ? `${pagesLabel(pages.length)}. ${chosen.length} selected`
                 : 'Select the pages you want, then tap Extract. Tap the magnifier to see a page larger.'
               : hasMouse()
                 ? `${pagesLabel(pages.length)}. Click a page to edit, drag to reorder. You can also drop files here.`
@@ -183,9 +183,10 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
         </>
       )}
 
-      <footer className={`${s.toolbar} ${selecting ? s.four : ''}`}>
+      <footer className={`${s.toolbar} ${selecting ? s.five : ''}`}>
         {selecting ? (
           <>
+            <ToolButton label="Add" icon={<PlusIcon size={24} />} onClick={() => setAddSheet(true)} />
             <ToolButton label="Extract" icon={<ScissorsIcon size={24} />} disabled={!chosen.length} onClick={() => setExtracting(chosen)} />
             <ToolButton label="Rotate" icon={<ArrowClockwiseIcon size={24} />} disabled={!chosen.length} onClick={rotateSelected} />
             <ToolButton label="Filter" icon={<MagicWandIcon size={24} />} disabled={!chosen.some((p) => p.kind === 'image')} onClick={() => setFilterSheet(true)} />

@@ -14,6 +14,7 @@ import { CheckCircleIcon, CircleIcon, MagnifyingGlassPlusIcon, WarningIcon } fro
 import type { PageItem } from '../types';
 import { useThumb } from '../lib/thumbs';
 import { filterLabel } from '../lib/filterMeta';
+import { groupStarts } from '../lib/pageGroups';
 import s from './PageGrid.module.css';
 
 interface Props {
@@ -35,6 +36,7 @@ export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReord
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
+  const starts = selecting ? groupStarts(pages) : new Set<number>();
   const onDragStart = () => navigator.vibrate?.(10);
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
@@ -56,6 +58,7 @@ export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReord
               selected={selected.has(p.id)}
               onClick={() => (selecting ? onToggle(p.id) : onOpen(p.id))}
               onZoom={() => onZoom(i)}
+              source={starts.has(i) ? p.sourceName : undefined}
             />
           ))}
         </ol>
@@ -71,6 +74,7 @@ function Tile({
   selected,
   onClick,
   onZoom,
+  source,
 }: {
   page: PageItem;
   index: number;
@@ -78,6 +82,8 @@ function Tile({
   selected: boolean;
   onClick: () => void;
   onZoom: () => void;
+  /** File name, shown on the first page of each file while selecting. */
+  source?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: page.id });
   const url = useThumb(page);
@@ -123,6 +129,11 @@ function Tile({
         </button>
       )}
       <span className={s.num}>{index + 1}</span>
+      {source && (
+        <span className={s.source} title={source}>
+          {source}
+        </span>
+      )}
     </li>
   );
 }
