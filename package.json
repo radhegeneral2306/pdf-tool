@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-pdfjs.mjs && node scripts/copy-opencv.mjs",
+    "predev": "node scripts/copy-pdfjs.mjs && node scripts/copy-opencv.mjs && node scripts/copy-ocr.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/copy-pdfjs.mjs && node scripts/copy-opencv.mjs",
+    "prebuild": "node scripts/copy-pdfjs.mjs && node scripts/copy-opencv.mjs && node scripts/copy-ocr.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
@@ -18,11 +18,14 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@phosphor-icons/react": "^2.1.10",
     "@techstark/opencv-js": "^4.12.0-release.1",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/hin": "^1.0.0",
     "idb": "^8.0.3",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

@@ -5,3 +5,4 @@ dev-dist
 .DS_Store
 public/pdfjs/
 public/cv/opencv.js
+public/ocr/

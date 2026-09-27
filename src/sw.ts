@@ -76,6 +76,19 @@ registerRoute(
   }),
 );
 
+// ---- OCR (tesseract.js, lazy, large): worker, wasm core, traineddata --------
+// Self-hosted under ocr/ (scripts/copy-ocr.mjs); cached on first OCR use.
+registerRoute(
+  ({ url }) => /\/ocr\/(worker\.min\.js|core\/.+|lang\/.+\.traineddata\.gz)$/.test(url.pathname),
+  new CacheFirst({
+    cacheName: 'ocr',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 31536000 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  }),
+);
+
 // ---- Update flow (registerType: 'prompt') ----------------------------------
 // UpdateBanner's updateSW(true) posts SKIP_WAITING to the waiting worker, then
 // reloads once it takes control.

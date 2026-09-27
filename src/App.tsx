@@ -13,6 +13,7 @@ import { DocumentView } from './screens/DocumentView';
 import { Camera } from './screens/Camera';
 import { PageEditor } from './screens/PageEditor';
 import { Welcome } from './screens/Welcome';
+import { Ocr } from './screens/Ocr';
 import { handleOpenRoute } from './lib/openWith';
 
 export function App() {
@@ -38,6 +39,7 @@ export function App() {
       {route.name === 'documents' && <Documents />}
       {route.name === 'settings' && <Settings />}
       {route.name === 'scan' && <Camera />}
+      {route.name === 'ocr' && <Ocr />}
       {route.name === 'doc' && <DocumentView key={route.id} id={route.id} startSelecting={route.select} />}
       {route.name === 'camera' && <Camera projectId={route.id} />}
       {route.name === 'edit' && (
