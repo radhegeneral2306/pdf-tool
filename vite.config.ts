@@ -35,9 +35,22 @@ export default defineConfig({
         // decoders (+ JS fallbacks), CMaps (.bcmap), standard fonts (.pfb/.ttf), ICC profiles.
         globPatterns: ['**/*.{js,mjs,css,html,png,svg,ico,webmanifest,wasm,bcmap,pfb,ttf,icc}'],
         // QuickJS is only for PDF form scripting, which this app never enables.
-        globIgnores: ['**/node_modules/**/*', 'pdfjs/wasm/quickjs-eval.*'],
+        // cv/ (OpenCV.js ~11 MB + detection worker) is loaded lazily when the
+        // scanner opens and cached at runtime below instead of precached.
+        globIgnores: ['**/node_modules/**/*', 'pdfjs/wasm/quickjs-eval.*', 'cv/**'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: `${BASE}index.html`,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/cv\/(opencv|detect-worker)\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'opencv',
+              expiration: { maxEntries: 4, maxAgeSeconds: 31536000 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],

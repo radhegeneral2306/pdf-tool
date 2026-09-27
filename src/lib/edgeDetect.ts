@@ -47,7 +47,8 @@ export function warmUp(): Promise<boolean> {
     // OpenCV is ~11 MB; allow time for a slow first download.
     const timer = setTimeout(() => finish(false), 60_000);
     try {
-      worker = new Worker(`${import.meta.env.BASE_URL}cv/detect-worker.js`);
+      // Bump ?v= when the worker or OpenCV changes: the service worker caches these files for a year.
+      worker = new Worker(`${import.meta.env.BASE_URL}cv/detect-worker.js?v=1`);
     } catch {
       finish(false);
       return;
