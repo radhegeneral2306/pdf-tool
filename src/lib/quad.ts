@@ -33,8 +33,22 @@ export function acceptQuad(q: Quad | null | undefined): Quad | null {
   const clamped = q.map((p) => ({ x: Math.min(1, Math.max(0, p.x)), y: Math.min(1, Math.max(0, p.y)) })) as Quad;
   const ordered = orderCorners(clamped);
   if (new Set(ordered).size !== 4 || !isConvex(ordered)) return null;
+  // A box hugging all four photo edges is just the frame border (e.g. a plain wall), not a page.
+  const e = 0.03;
+  const [tl, tr, br, bl] = ordered;
+  if (tl.x < e && tl.y < e && tr.x > 1 - e && tr.y < e && br.x > 1 - e && br.y > 1 - e && bl.x < e && bl.y > 1 - e) return null;
   const area = quadArea(ordered);
   return area >= 0.15 && area <= 0.97 ? ordered : null;
+}
+
+/** Moves each corner slightly towards the centre, so no thin strip of background shows at the page edge. */
+export function insetQuad(q: Quad, amount = 0.006): Quad {
+  const cx = q.reduce((a, p) => a + p.x, 0) / 4;
+  const cy = q.reduce((a, p) => a + p.y, 0) / 4;
+  return q.map((p) => {
+    const d = Math.hypot(cx - p.x, cy - p.y) || 1;
+    return { x: p.x + ((cx - p.x) / d) * amount, y: p.y + ((cy - p.y) / d) * amount };
+  }) as Quad;
 }
 
 /** Largest corner movement between two quads (used to avoid a jittery live outline). */

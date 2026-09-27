@@ -166,7 +166,7 @@ export function PageEditor({ projectId, pageId }: { projectId: string; pageId: s
       <div className={s.tools}>
         {mode === 'crop' && isImage && (
           <div className={s.row}>
-            <span className={s.help}>Drag the corners to the edges of the page</span>
+            <span className={s.help}>Drag corners to the page edges</span>
             <button className={s.textBtn} onClick={autoDetect} disabled={detecting}>
               {detecting ? <Spinner size={18} light /> : 'Auto'}
             </button>

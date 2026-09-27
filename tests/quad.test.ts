@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptQuad, orderCorners, quadArea, quadDistance } from '../src/lib/quad';
+import { acceptQuad, insetQuad, orderCorners, quadArea, quadDistance } from '../src/lib/quad';
 import type { Quad } from '../src/types';
 
 const page: Quad = [
@@ -28,6 +28,16 @@ describe('detected page corners', () => {
     expect(acceptQuad(full)).toBeNull();
     expect(acceptQuad(line)).toBeNull();
     expect(acceptQuad(null)).toBeNull();
+  });
+  it('rejects a box hugging the photo border (plain wall, no page)', () => {
+    const border: Quad = [{ x: 0.006, y: 0.011 }, { x: 0.991, y: 0.011 }, { x: 0.991, y: 0.983 }, { x: 0.006, y: 0.983 }];
+    expect(acceptQuad(border)).toBeNull();
+  });
+  it('insets corners slightly towards the centre', () => {
+    const q = insetQuad(page, 0.01);
+    expect(q[0].x).toBeGreaterThan(page[0].x);
+    expect(q[2].x).toBeLessThan(page[2].x);
+    expect(quadDistance(q, page)).toBeCloseTo(0.01);
   });
   it('measures how far corners moved', () => {
     const moved = page.map((p) => ({ x: p.x + 0.03, y: p.y })) as Quad;

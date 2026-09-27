@@ -1,5 +1,5 @@
 import type { Quad } from '../types';
-import { acceptQuad } from './quad';
+import { acceptQuad, insetQuad } from './quad';
 import { decodeImage } from './imageUtils';
 
 /**
@@ -57,7 +57,8 @@ export function warmUp(): Promise<boolean> {
       const m = e.data;
       if (m.type === 'ready') finish(true);
       else if (m.type === 'result') {
-        const quad = acceptQuad(m.quad);
+        const ok = acceptQuad(m.quad);
+        const quad = ok && insetQuad(ok);
         pending.get(m.id)?.(quad ? { quad, confidence: m.confidence, ms: m.ms } : null);
         pending.delete(m.id);
       } else if (m.type === 'error') {
