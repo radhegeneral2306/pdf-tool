@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CheckCircleIcon, CircleIcon, WarningIcon } from '@phosphor-icons/react';
+import { CheckCircleIcon, CircleIcon, MagnifyingGlassPlusIcon, WarningIcon } from '@phosphor-icons/react';
 import type { PageItem } from '../types';
 import { useThumb } from '../lib/thumbs';
 import { filterLabel } from '../lib/filterMeta';
@@ -23,9 +23,11 @@ interface Props {
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
   onReorder: (pages: PageItem[]) => void;
+  /** Opens the full-screen viewer (select mode). */
+  onZoom: (index: number) => void;
 }
 
-export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReorder }: Props) {
+export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReorder, onZoom }: Props) {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     // Long-press to pick up a page, so normal scrolling still works.
@@ -53,6 +55,7 @@ export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReord
               selecting={selecting}
               selected={selected.has(p.id)}
               onClick={() => (selecting ? onToggle(p.id) : onOpen(p.id))}
+              onZoom={() => onZoom(i)}
             />
           ))}
         </ol>
@@ -61,7 +64,21 @@ export function PageGrid({ pages, selecting, selected, onToggle, onOpen, onReord
   );
 }
 
-function Tile({ page, index, selecting, selected, onClick }: { page: PageItem; index: number; selecting: boolean; selected: boolean; onClick: () => void }) {
+function Tile({
+  page,
+  index,
+  selecting,
+  selected,
+  onClick,
+  onZoom,
+}: {
+  page: PageItem;
+  index: number;
+  selecting: boolean;
+  selected: boolean;
+  onClick: () => void;
+  onZoom: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: page.id });
   const url = useThumb(page);
   return (
@@ -95,6 +112,16 @@ function Tile({ page, index, selecting, selected, onClick }: { page: PageItem; i
           </span>
         )}
       </button>
+      {selecting && (
+        <button
+          className={s.zoom}
+          onClick={onZoom}
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={`View page ${index + 1} larger`}
+        >
+          <MagnifyingGlassPlusIcon size={20} weight="bold" />
+        </button>
+      )}
       <span className={s.num}>{index + 1}</span>
     </li>
   );
