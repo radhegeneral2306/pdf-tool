@@ -52,33 +52,14 @@
 .error {
   color: rgba(235, 235, 245, 0.6);
 }
-.badge {
-  position: absolute;
-  top: 12px;
-  right: calc(12px + var(--safe-right));
-  color: #0a84ff;
-  background: #fff;
-  border-radius: 50%;
-  pointer-events: none;
-}
-.zoom {
-  position: absolute;
-  right: calc(12px + var(--safe-right));
-  bottom: 12px;
-  display: flex;
-  gap: 1px;
-  border-radius: var(--r-btn);
-  overflow: hidden;
-}
-.zoom button {
+.icon {
   display: grid;
   place-items: center;
-  width: 48px;
+  width: 44px;
   height: 44px;
-  background: rgba(44, 44, 46, 0.9);
   color: #fff;
 }
-.zoom button:disabled {
+.icon:disabled {
   color: rgba(255, 255, 255, 0.3);
 }
 .bottom {

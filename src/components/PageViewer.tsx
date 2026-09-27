@@ -5,7 +5,7 @@ import { usePreview } from '../lib/usePreview';
 import { Spinner } from './Controls';
 import s from './PageViewer.module.css';
 
-const VIEW_DIM = 2200;
+const VIEW_DIM = 3000; // sharp up to ~4x on phones
 const MAX_ZOOM = 5;
 
 interface Props {
@@ -162,7 +162,14 @@ export function PageViewer({ pages, startIndex, selected, onToggle, onClose }: P
   return (
     <div className={s.viewer} role="dialog" aria-modal="true" aria-label={`Page ${index + 1} of ${pages.length}`}>
       <header className={s.top}>
-        <span className={s.side} />
+        <span className={s.side}>
+          <button className={s.icon} onClick={() => zoomAt(view.scale / 1.5)} disabled={view.scale <= 1} aria-label="Zoom out">
+            <MagnifyingGlassMinusIcon size={22} />
+          </button>
+          <button className={s.icon} onClick={() => zoomAt(view.scale * 1.5)} disabled={view.scale >= MAX_ZOOM} aria-label="Zoom in">
+            <MagnifyingGlassPlusIcon size={22} />
+          </button>
+        </span>
         <span className={s.title}>
           {index + 1} of {pages.length}
         </span>
@@ -195,15 +202,6 @@ export function PageViewer({ pages, startIndex, selected, onToggle, onClose }: P
             style={{ width: fitW, height: fitH, transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
           />
         )}
-        {isSelected && <CheckCircleIcon className={s.badge} size={34} weight="fill" aria-hidden />}
-        <div className={s.zoom}>
-          <button onClick={() => zoomAt(view.scale / 1.5)} disabled={view.scale <= 1} aria-label="Zoom out">
-            <MagnifyingGlassMinusIcon size={22} />
-          </button>
-          <button onClick={() => zoomAt(view.scale * 1.5)} disabled={view.scale >= MAX_ZOOM} aria-label="Zoom in">
-            <MagnifyingGlassPlusIcon size={22} />
-          </button>
-        </div>
       </div>
 
       <footer className={s.bottom}>
