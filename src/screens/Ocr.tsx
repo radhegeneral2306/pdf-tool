@@ -7,7 +7,7 @@ import { ActionSheet } from '../components/Sheet';
 import { showToast } from '../components/Toast';
 import { goBack } from '../router';
 import { pickFiles, ACCEPT_IMAGES, ACCEPT_PDF } from '../lib/pickFiles';
-import { cancelOcr, expandSources, mergePagePdfs, recognizeSource, sourceLabel, type OcrSource } from '../lib/ocr';
+import { OcrCancelled, cancelOcr, expandSources, mergePagePdfs, recognizeSource, sourceLabel, type OcrSource } from '../lib/ocr';
 import {
   friendlyOcrError,
   joinPages,
@@ -46,6 +46,7 @@ export function Ocr() {
   const [notes, setNotes] = useState<string[]>([]);
   const [pendingBig, setPendingBig] = useState<OcrSource[] | null>(null);
   const cancelled = useRef(false);
+  const resultRef = useRef<HTMLElement>(null);
 
   // Leaving the screen stops any OCR in progress.
   useEffect(
@@ -61,12 +62,13 @@ export function Ocr() {
     setError(null);
     setPhase('preparing');
     const { sources, skipped } = await expandSources(files);
-    setNotes(skipped);
     if (!sources.length) {
       setPhase(results.length ? 'done' : 'idle');
       setError(skipped[0] ?? 'Nothing to read in these files.');
+      setNotes(skipped.slice(1));
       return;
     }
+    setNotes(skipped);
     if (shouldWarn(sources.length)) {
       setPendingBig(sources);
       setPhase(results.length ? 'done' : 'idle');
@@ -93,7 +95,7 @@ export function Ocr() {
         out.push({ page: i + 1, label, text: r.text });
         if (r.pdf) pdfs.push(r.pdf);
       } catch (e) {
-        if (cancelled.current) break;
+        if (cancelled.current || e instanceof OcrCancelled) break;
         console.error(e);
         const msg = friendlyOcrError(e);
         out.push({ page: i + 1, label, text: '', error: msg });
@@ -119,6 +121,7 @@ export function Ocr() {
     }
     if (cancelled.current) showToast(`Stopped. ${out.length} of ${sources.length} pages read.`);
     setPhase('done');
+    requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
   const cancel = () => {
@@ -231,7 +234,7 @@ export function Ocr() {
       ))}
 
       {phase === 'done' && results.length > 0 && (
-        <section className={s.result}>
+        <section className={s.result} ref={resultRef}>
           <div className={s.resultHead}>
             <h2>Text</h2>
             <span>

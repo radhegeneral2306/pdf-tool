@@ -140,3 +140,8 @@
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 }
+/* Bigger tap targets on this screen (phones first). */
+.pad [role='radio'] {
+  min-height: 40px;
+  font-size: 15px;
+}

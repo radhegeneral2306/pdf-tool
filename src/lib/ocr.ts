@@ -23,6 +23,25 @@ export type OcrSource =
 let worker: TessWorker | null = null;
 let workerLang: OcrLang | null = null;
 let onProgress: ((p: number) => void) | null = null;
+/** tesseract's terminate() never settles a running job, so cancelling rejects this instead. */
+let cancelWaiters = new Set<(e: Error) => void>();
+
+export class OcrCancelled extends Error {
+  constructor() {
+    super('cancelled');
+    this.name = 'OcrCancelled';
+  }
+}
+
+/** Resolves like `p`, or rejects with OcrCancelled as soon as cancelOcr() is called. */
+function cancellable<T>(p: Promise<T>): Promise<T> {
+  let stop!: (e: Error) => void;
+  const cancelled = new Promise<never>((_, reject) => {
+    stop = reject;
+    cancelWaiters.add(reject);
+  });
+  return Promise.race([p, cancelled]).finally(() => cancelWaiters.delete(stop));
+}
 
 async function getWorker(lang: OcrLang): Promise<TessWorker> {
   if (worker && workerLang === lang) return worker;
@@ -46,6 +65,9 @@ async function getWorker(lang: OcrLang): Promise<TessWorker> {
 
 /** Stops OCR immediately. The next run starts a fresh worker. */
 export async function cancelOcr() {
+  const waiting = cancelWaiters;
+  cancelWaiters = new Set();
+  waiting.forEach((reject) => reject(new OcrCancelled()));
   const w = worker;
   worker = null;
   workerLang = null;
@@ -105,11 +127,11 @@ export async function recognizeSource(
   opts: { lang: OcrLang; cleanup: OcrCleanup; pdf: boolean },
   progress: (p: number) => void,
 ): Promise<PageOutput> {
-  const w = await getWorker(opts.lang);
-  const canvas = await pageCanvas(s, opts.cleanup);
+  const w = await cancellable(getWorker(opts.lang));
+  const canvas = await cancellable(pageCanvas(s, opts.cleanup));
   onProgress = progress;
   try {
-    const { data } = await w.recognize(canvas, {}, { text: true, pdf: opts.pdf });
+    const { data } = await cancellable(w.recognize(canvas, {}, { text: true, pdf: opts.pdf }));
     const pdf = data.pdf ? new Uint8Array(data.pdf) : undefined;
     return { text: data.text ?? '', pdf };
   } finally {
