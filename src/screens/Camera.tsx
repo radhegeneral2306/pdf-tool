@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { pausePrerender } from '../lib/prerender';
 import { CameraIcon, LightningIcon, LightningSlashIcon, ImagesIcon } from '@phosphor-icons/react';
 import { ActionSheet } from '../components/Sheet';
 import { withBusy } from '../components/Hud';
@@ -24,6 +25,7 @@ declare const ImageCapture: { new (track: MediaStreamTrack): ImageCaptureLike } 
 
 /** Batch document camera. `projectId` adds to an existing document, otherwise a new one is made. */
 export function Camera({ projectId }: { projectId?: string }) {
+  useEffect(() => pausePrerender(), []); // camera + edge detection need the CPU
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const [state, setState] = useState<CamState>('starting');
