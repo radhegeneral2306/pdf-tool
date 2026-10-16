@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { pausePrerender } from '../lib/prerender';
 import {
   ArrowClockwiseIcon,
   ArrowCounterClockwiseIcon,
@@ -29,6 +30,7 @@ const PREVIEW_DIM = 1600;
 const CHIP_DIM = 220;
 
 export function PageEditor({ projectId, pageId }: { projectId: string; pageId: string }) {
+  useEffect(() => pausePrerender(), []); // keep the editor smooth
   const project = useProject(projectId);
   const index = project ? project.pages.findIndex((p) => p.id === pageId) : -1;
   const page = project && index >= 0 ? project.pages[index] : undefined;

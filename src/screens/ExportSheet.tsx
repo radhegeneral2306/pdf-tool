@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { pausePrerender } from '../lib/prerender';
 import { DownloadSimpleIcon, ShareNetworkIcon } from '@phosphor-icons/react';
 import { Sheet } from '../components/Sheet';
 import { BarButton } from '../components/NavBar';
@@ -28,6 +29,8 @@ const levelFor = (size: OutputSize): Level | null => (size === 'original' || siz
 export function ExportSheet({ project, pages: only, onClose }: { project: Project; pages?: PageItem[]; onClose: () => void }) {
   // `only` = just the selected pages (Extract); otherwise the whole document.
   const pages = only ?? project.pages;
+  // Save PDF renders whatever isn't prepared yet itself; don't compete with it.
+  useEffect(() => pausePrerender(), []);
   const settings = useSettings();
   // A PDF opened with Edit PDF keeps its original name (whole document only, not extracts).
   const originalName = !only && project.exportName ? sanitizeName(project.exportName) : '';

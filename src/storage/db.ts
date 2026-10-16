@@ -5,15 +5,20 @@ interface Schema extends DBSchema {
   projects: { key: string; value: Project; indexes: { updatedAt: number } };
   blobs: { key: string; value: { id: string; blob: Blob; createdAt?: number } };
   thumbs: { key: string; value: Blob };
+  /** Full-quality page JPEGs prepared in the background so Save PDF is fast. */
+  renders: { key: string; value: Blob };
 }
 
 let dbp: Promise<IDBPDatabase<Schema>> | null = null;
 function db() {
-  dbp ??= openDB<Schema>('pdf-tool', 1, {
-    upgrade(d) {
-      d.createObjectStore('projects', { keyPath: 'id' }).createIndex('updatedAt', 'updatedAt');
-      d.createObjectStore('blobs', { keyPath: 'id' });
-      d.createObjectStore('thumbs');
+  dbp ??= openDB<Schema>('pdf-tool', 2, {
+    upgrade(d, oldVersion) {
+      if (oldVersion < 1) {
+        d.createObjectStore('projects', { keyPath: 'id' }).createIndex('updatedAt', 'updatedAt');
+        d.createObjectStore('blobs', { keyPath: 'id' });
+        d.createObjectStore('thumbs');
+      }
+      if (oldVersion < 2) d.createObjectStore('renders');
     },
   });
   return dbp;
@@ -71,20 +76,43 @@ export async function collectGarbage() {
   const d = await db();
   const used = new Set<string>();
   for (const p of await d.getAll('projects')) for (const pg of p.pages) used.add(pg.blobId);
-  const tx = d.transaction(['blobs', 'thumbs'], 'readwrite');
+  const tx = d.transaction(['blobs', 'thumbs', 'renders'], 'readwrite');
   // Files added in the last 10 minutes are kept: their document may not be saved yet.
   const fresh = Date.now() - 10 * 60 * 1000;
   for (const rec of await tx.objectStore('blobs').getAll())
     if (!used.has(rec.id) && !((rec.createdAt ?? 0) > fresh)) await tx.objectStore('blobs').delete(rec.id);
   for (const key of await tx.objectStore('thumbs').getAllKeys())
     if (!used.has(String(key).split('|')[0])) await tx.objectStore('thumbs').delete(key);
+  for (const key of await tx.objectStore('renders').getAllKeys())
+    if (!used.has(String(key).split('|')[0])) await tx.objectStore('renders').delete(key);
+  await tx.done;
+}
+
+export async function getRender(key: string) {
+  return (await db()).get('renders', key);
+}
+
+/** Saves a prepared page and drops older versions of the same photo that no page uses anymore. */
+export async function putRender(key: string, blob: Blob, keep: Set<string>) {
+  const d = await db();
+  const blobId = key.split('|')[0];
+  const tx = d.transaction('renders', 'readwrite');
+  for (const k of await tx.store.getAllKeys(IDBKeyRange.bound(`${blobId}|`, `${blobId}|\uffff`)))
+    if (k !== key && !keep.has(k)) await tx.store.delete(k);
+  await tx.store.put(blob, key);
   await tx.done;
 }
 
 export async function clearAll() {
   const d = await db();
-  const tx = d.transaction(['projects', 'blobs', 'thumbs'], 'readwrite');
-  await Promise.all([tx.objectStore('projects').clear(), tx.objectStore('blobs').clear(), tx.objectStore('thumbs').clear(), tx.done]);
+  const tx = d.transaction(['projects', 'blobs', 'thumbs', 'renders'], 'readwrite');
+  await Promise.all([
+    tx.objectStore('projects').clear(),
+    tx.objectStore('blobs').clear(),
+    tx.objectStore('thumbs').clear(),
+    tx.objectStore('renders').clear(),
+    tx.done,
+  ]);
 }
 
 /** Asks the browser not to auto-delete our data when space is low. */

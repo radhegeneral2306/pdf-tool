@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { pausePrerender } from '../lib/prerender';
 import { CameraIcon, CaretLeftIcon, CopySimpleIcon, DownloadSimpleIcon, FilePdfIcon, ImagesIcon, TextAaIcon, WarningIcon } from '@phosphor-icons/react';
 import { NavBar, BarButton } from '../components/NavBar';
 import { Section, Cell } from '../components/List';
@@ -34,6 +35,7 @@ function download(blob: Blob, name: string) {
 }
 
 export function Ocr() {
+  useEffect(() => pausePrerender(), []);
   const [lang, setLang] = useState<OcrLang>('eng');
   const [cleanup, setCleanup] = useState<OcrCleanup>('off');
   const [makePdf, setMakePdf] = useState(false);

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ArrowClockwiseIcon,
   CameraIcon,
@@ -24,6 +24,7 @@ import { goBack, navigate } from '../router';
 import { updateProject, useProject } from '../storage/projects';
 import { ACCEPT_ANY, ACCEPT_IMAGES, pickFiles } from '../lib/pickFiles';
 import { addToProject } from '../lib/importFlow';
+import { prepareProject, stopPreparing } from '../lib/prerender';
 import { hasMouse, useFileDrop } from '../lib/dropFiles';
 import { rotateQuad } from '../lib/perspective';
 import { FILTERS } from '../lib/filterMeta';
@@ -54,6 +55,16 @@ export function DocumentView({ id, startSelecting }: { id: string; startSelectin
     },
     [id],
   );
+
+  // Prepare edited photos in the background so Save PDF is quick (waits 1.5 s after the last change).
+  const pagesSig = project ? project.pages.map((p) => `${p.id}:${p.rotation}:${p.filter}:${p.crop ? 1 : 0}`).join() : '';
+  useEffect(() => {
+    if (!project) return;
+    const t = setTimeout(() => prepareProject(project), 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagesSig]);
+  useEffect(() => () => stopPreparing(), []);
 
   const drop = useFileDrop((files) => withBusy('Adding files', () => addToProject(id, files)));
 
