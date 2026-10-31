@@ -2,12 +2,13 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { Project } from '../types';
 import { clearAll, deleteProject, getProject, listProjects, putProject, uid } from './db';
 import { dateName } from '../lib/fileName';
+import { SaveQueue } from './saveQueue';
 
 /** In-memory copy of opened projects. Every change is written to IndexedDB right away. */
 const cache = new Map<string, Project | null>();
 const listeners = new Set<() => void>();
 let version = 0;
-let writes: Promise<void> = Promise.resolve();
+const saves = new SaveQueue<Project>(putProject, emit);
 
 function emit() {
   version++;
@@ -29,12 +30,12 @@ export function newProject(pages: Project['pages'] = [], title?: string, exportN
 }
 
 function save(p: Project) {
-  writes = writes.then(() => putProject(p)).catch((e) => console.error('Save failed', e));
+  saves.save(p);
 }
 
-/** Resolves when all pending saves have reached the database. */
+/** Waits for pending save attempts. Failures remain available for retry. */
 export function flushSaves() {
-  return writes;
+  return saves.flush();
 }
 
 export function updateProject(id: string, fn: (p: Project) => Project) {
@@ -60,6 +61,7 @@ export async function removeProject(id: string) {
   cache.set(id, null);
   await flushSaves();
   await deleteProject(id);
+  saves.forget(id);
   cache.delete(id);
   emit();
 }
@@ -69,6 +71,7 @@ export async function removeAll() {
   for (const k of cache.keys()) cache.set(k, null);
   await flushSaves();
   await clearAll();
+  for (const id of cache.keys()) saves.forget(id);
   cache.clear();
   emit();
 }
@@ -109,3 +112,12 @@ export function useProjectList(): Project[] | undefined {
   return list;
 }
 
+
+
+/** A persistent warning remains until all failed documents are saved or deleted. */
+export function useSaveFailure() {
+  useSyncExternalStore(subscribe, () => version);
+  return saves.failed;
+}
+
+export const retrySaves = () => saves.retry();
