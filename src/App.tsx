@@ -12,6 +12,7 @@ import { Settings } from './screens/Settings';
 import { DocumentView } from './screens/DocumentView';
 import { Camera } from './screens/Camera';
 import { PageEditor } from './screens/PageEditor';
+import { SaveWarning } from './components/SaveWarning';
 import { Welcome } from './screens/Welcome';
 import { Ocr } from './screens/Ocr';
 import { handleOpenRoute } from './lib/openWith';
@@ -50,6 +51,7 @@ export function App() {
       )}
       {tab && <TabBar active={route.name} />}
       {!welcomed && <Welcome />}
+      <SaveWarning />
       <ToastHost />
       <HudHost />
       <UpdateBanner />
